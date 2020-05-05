@@ -1,0 +1,196 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Image Classification using MobileNet and p5.js</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.dom.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://unpkg.com/ml5@0.2.2/dist/ml5.min.js" type="text/javascript"></script>
+</head>
+
+<body>
+<input value="" id="controle" type="hidden">
+  <script>
+  
+
+
+function dump(obj) {
+    var out = '';
+    for (var i in obj) {
+        out += i + ": " + obj[i] + "\n";
+    }
+
+  //  alert(out);
+
+    // or, if you wanted to avoid alerts...
+
+   // var pre = document.createElement('resultado');
+    document.getElementById("resultado").innerHTML = out;
+}
+
+let video;
+let poseNet;
+let poses = [];
+let skeletons = [];
+let ai = '';
+let bolaX = 100;
+let bolaY = 100;
+let speedX = 0;
+let speedY = 0;
+widthCanvas = 1024;
+heightCanvas = 768;
+let larguraBarra = 250;
+let alturaBarra = 30;
+let angle = '';
+let x = (widthCanvas/2)-larguraBarra/2;
+
+let myShowBoundingBox = true;
+function setup() 
+{
+	createCanvas(widthCanvas, heightCanvas);
+	var constraints2 = {
+    audio: false,
+    video: { deviceId:  "" }
+	
+	};  
+  	angle = random(Math.PI/1, Math.PI/4);
+ 	speedX = 6 * cos(angle);
+	speedY  = 6 * sin(angle); 
+	
+  video = createCapture(constraints2);
+  video.size(width, height);
+  poseNet = ml5.poseNet(video, modelReady);
+  poseNet.on('pose', function (results) 
+  {
+    poses = results;
+  });
+  video.hide();
+}
+
+function modelReady() {
+  select('#status').html('Model Loaded');
+}
+
+function draw() 
+{
+	background(0);
+	image(video, 0, 0, width, height);
+	var controle = document.getElementById("controle").value;
+	fill(255, 255, 0);
+	if(controle=='0')
+	{
+		rect(x,height-alturaBarra*2,larguraBarra,alturaBarra);
+	}
+	else if(controle>512)
+	{	
+		if(x<=1024-250) x = x+8;
+		rect(x,height-alturaBarra*2,250,30);
+	}
+	else if(controle<512)
+	{
+		if(x>=0) x = x-8;
+		rect(x,height-alturaBarra*2,250,30);
+	}
+  // We can call both functions to draw all keypoints and the skeletons
+  drawKeypoints();
+ //drawSkeleton();
+	if(poses)
+	{
+		bolaY = bolaY + speedY;
+		bolaX = bolaX + speedX;
+		if(bolaX>widthCanvas) speedX *= -1;
+		
+		if(bolaY>height-alturaBarra*2 && bolaX<= x+larguraBarra && bolaX>=x) speedY *= -1;
+		
+		// PERDEU
+		if(bolaY>heightCanvas)
+		{ 
+			speedX = 0;
+			speedY = 0;
+			textSize(32);
+			text('GAME OVER', widthCanvas/2-100, heightCanvas/2);
+			setTimeout(function( ){  	
+				bolaX = 100;
+				bolaY = 100;
+				angle = random(Math.PI/1, Math.PI/4);
+ 				speedX = 6 * cos(angle);
+				speedY  = 6 * sin(angle);  },2000);
+		}
+		if(bolaX<0) speedX *= -1;
+		if(bolaY<0) speedY *= -1;
+		//console.log(bolaX+" > "+widthCanvas+" > "+speedY);
+		fill(255, 255, 0);
+		ellipse(bolaX, bolaY, 40, 40);
+	}
+}
+
+// A function to draw ellipses over the detected keypoints
+function drawKeypoints()  {
+  // Loop through all the poses detected
+  for (let i = 0; i < poses.length; i++) {
+ //alert(poses);
+ ai++;
+ 	if(ai==10)
+		{
+		console.log(poses);
+		}
+    // For each pose detected, loop through all the keypoints
+    for (let j = 0; j < poses[i].pose.keypoints.length; j++) {
+      // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+      let keypoint = poses[i].pose.keypoints[j];
+      // Only draw an ellipse is the pose probability is bigger than 0.2
+      if (keypoint.score > 0.45) {
+        fill("red");
+        noStroke();
+		//document.getElementById("resultado").innerHTML = i;
+		//alert();<br>
+		//keypoint.position.y = keypoint.position.y-50;
+		
+		if(keypoint.part=="rightWrist")
+		{
+			ellipse(keypoint.position.x, keypoint.position.y, 40, 40);
+			document.getElementById("controle").value = keypoint.position.x;
+			
+		}
+		if(keypoint.part=="leftWrist")
+		{
+			ellipse(keypoint.position.x, keypoint.position.y, 40, 40);
+			document.getElementById("controle").value = keypoint.position.x;
+		}
+		
+		
+							
+			
+		}	
+		
+		}
+      }
+    }
+
+
+// A function to draw the skeletons
+function drawSkeleton() {
+  // Loop through all the skeletons detected
+  for (let i = 0; i < poses.length; i++) {
+    // For every skeleton, loop through all body connections
+    for (let j = 0; j < poses[i].skeleton.length; j++) {
+      let partA = poses[i].skeleton[j][0];
+      let partB = poses[i].skeleton[j][1];
+      stroke(255, 0, 0);
+      line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
+    }
+  }
+}
+function apaga()
+{
+	document.getElementById("controle").value = 0
+	setTimeout(function(){ apaga() },500);
+}
+apaga();
+  </script>
+<img style="float:right; width:400px;" src="webcam.gif" >
+</body>
+
+</html>
