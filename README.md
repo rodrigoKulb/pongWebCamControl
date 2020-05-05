@@ -5,7 +5,7 @@ Objetivo desse repositório é apresentar as possibilidades possíveis, utilizan
 
 Abaixo um exemplo e link para o *DEMO*
 
-
+![Alt text](http://full/path/to/img.jpg "Optional title")
 
 https://rodrigo-kulb.com.br/webcam/teste2.html
 
